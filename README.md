@@ -280,5 +280,3 @@ If you like this project, don't forget to give it a ⭐!
 
 </div> ```
 - **bcrypt** - Password hashing
-
-## 📁 Project Structure
