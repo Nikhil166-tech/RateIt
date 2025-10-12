@@ -17,3 +17,4 @@ RateIt/
 ÃÄÄ backend/           # Node.js/Express server 
 ÀÄÄ README.md         # Project documentation 
 ``` 
+"# RateIt" 
