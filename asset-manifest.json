@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/RateIt/static/css/main.0b7f8024.css",
+    "main.js": "/RateIt/static/js/main.b6a58613.js",
+    "static/js/453.d7446e4a.chunk.js": "/RateIt/static/js/453.d7446e4a.chunk.js",
+    "index.html": "/RateIt/index.html",
+    "main.0b7f8024.css.map": "/RateIt/static/css/main.0b7f8024.css.map",
+    "main.b6a58613.js.map": "/RateIt/static/js/main.b6a58613.js.map",
+    "453.d7446e4a.chunk.js.map": "/RateIt/static/js/453.d7446e4a.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.0b7f8024.css",
+    "static/js/main.b6a58613.js"
+  ]
+}
