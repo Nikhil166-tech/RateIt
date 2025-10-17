@@ -1,17 +1,18 @@
 const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 const bcrypt = require('bcryptjs');
-const fs = require('fs');
 
-const dbPath = process.env.DB_PATH || path.join(__dirname, '../database/store_rater.db');
+// Use simple relative path for Render compatibility
+const dbPath = './store_rater.db';
 
-// Create database directory if it doesn't exist
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
-}
+console.log('🔄 Initializing database at:', dbPath);
 
-const db = new sqlite3.Database(dbPath);
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('❌ Error opening database:', err.message);
+        process.exit(1);
+    }
+    console.log('✅ Connected to SQLite database');
+});
 
 const initDatabase = async () => {
     try {
