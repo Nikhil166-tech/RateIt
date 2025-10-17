@@ -3,61 +3,61 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 
-const dbPath = path.join(__dirname, '../database/store_rater.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'database/store_rater.db');
 
 // Create database directory if it doesn't exist
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
+    console.log('📁 Created database directory:', dbDir);
 }
 
 const db = new sqlite3.Database(dbPath);
 
 const initDatabase = async () => {
     try {
-        console.log('Initializing database...');
+        console.log('🔄 Initializing database...');
 
         // Users table
         await new Promise((resolve, reject) => {
             db.run(`
                 CREATE TABLE IF NOT EXISTS Users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL CHECK(length(name) >= 2 AND length(name) <= 60),
+                    name TEXT NOT NULL,
                     email TEXT UNIQUE NOT NULL,
                     password TEXT NOT NULL,
-                    address TEXT CHECK(length(address) <= 400),
-                    role TEXT NOT NULL CHECK(role IN ('admin', 'user', 'owner')),
+                    address TEXT,
+                    role TEXT NOT NULL DEFAULT 'user',
                     is_active BOOLEAN DEFAULT 1,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             `, (err) => {
                 if (err) reject(err);
                 else {
-                    console.log('✓ Users table created/verified');
+                    console.log('✅ Users table created/verified');
                     resolve();
                 }
             });
         });
 
-        // Stores table with consistent structure
+        // Stores table
         await new Promise((resolve, reject) => {
             db.run(`
                 CREATE TABLE IF NOT EXISTS Stores (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL CHECK(length(name) >= 2 AND length(name) <= 100),
-                    description TEXT NOT NULL CHECK(length(description) <= 500),
-                    address TEXT CHECK(length(address) <= 400),
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    address TEXT,
                     average_rating REAL DEFAULT 0,
                     rating_count INTEGER DEFAULT 0,
                     total_rating_value REAL DEFAULT 0,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             `, (err) => {
                 if (err) reject(err);
                 else {
-                    console.log('✓ Stores table created/verified');
+                    console.log('✅ Stores table created/verified');
                     resolve();
                 }
             });
@@ -72,39 +72,20 @@ const initDatabase = async () => {
                     store_id INTEGER NOT NULL,
                     rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
-                    FOREIGN KEY (store_id) REFERENCES Stores(id) ON DELETE CASCADE,
+                    FOREIGN KEY (user_id) REFERENCES Users(id),
+                    FOREIGN KEY (store_id) REFERENCES Stores(id),
                     UNIQUE(user_id, store_id)
                 )
             `, (err) => {
                 if (err) reject(err);
                 else {
-                    console.log('✓ Ratings table created/verified');
+                    console.log('✅ Ratings table created/verified');
                     resolve();
                 }
             });
         });
 
-        // Create indexes
-        const indexes = [
-            'CREATE INDEX IF NOT EXISTS idx_users_email ON Users(email)',
-            'CREATE INDEX IF NOT EXISTS idx_stores_name ON Stores(name)',
-            'CREATE INDEX IF NOT EXISTS idx_ratings_store ON Ratings(store_id)',
-            'CREATE INDEX IF NOT EXISTS idx_ratings_user ON Ratings(user_id)'
-        ];
-
-        for (const indexSql of indexes) {
-            await new Promise((resolve, reject) => {
-                db.run(indexSql, (err) => {
-                    if (err) reject(err);
-                    else resolve();
-                });
-            });
-        }
-        console.log('✓ All indexes created/verified');
-
-        // Insert default users (admin, owner, user)
+        // Insert default users
         const defaultUsers = [
             {
                 name: 'System Administrator', 
@@ -138,14 +119,14 @@ const initDatabase = async () => {
                 `, [userData.name, userData.email, hashedPassword, userData.address, userData.role], (err) => {
                     if (err) reject(err);
                     else {
-                        console.log(`✓ Default ${userData.role} user created/verified: ${userData.email}`);
+                        console.log(`✅ Default ${userData.role} user: ${userData.email}`);
                         resolve();
                     }
                 });
             });
         }
 
-        // Insert sample stores (only if no stores exist)
+        // Insert sample stores
         const storeCount = await new Promise((resolve, reject) => {
             db.get(`SELECT COUNT(*) as count FROM Stores`, (err, row) => {
                 if (err) reject(err);
@@ -154,68 +135,30 @@ const initDatabase = async () => {
         });
 
         if (storeCount === 0) {
-            console.log('Creating sample stores...');
+            console.log('📝 Creating sample stores...');
             const sampleStores = [
-                {
-                    name: "Tech Store",
-                    description: "Latest gadgets and electronics",
-                    address: "123 Tech Street, Silicon Valley",
-                    average_rating: 4.5,
-                    rating_count: 10,
-                    total_rating_value: 45
-                },
-                {
-                    name: "Book Haven", 
-                    description: "Wide collection of books",
-                    address: "456 Library Road, Knowledge City",
-                    average_rating: 4.2,
-                    rating_count: 8,
-                    total_rating_value: 33.6
-                },
-                {
-                    name: "Coffee Shop",
-                    description: "Fresh coffee and snacks", 
-                    address: "789 Brew Street, Morning Town",
-                    average_rating: 4.7,
-                    rating_count: 15,
-                    total_rating_value: 70.5
-                },
-                {
-                    name: "Fashion Boutique",
-                    description: "Trendy clothes and accessories",
-                    address: "321 Style Avenue, Fashion District",
-                    average_rating: 4.3,
-                    rating_count: 12,
-                    total_rating_value: 51.6
-                },
-                {
-                    name: "Sports Equipment",
-                    description: "All your sports gear needs",
-                    address: "654 Fitness Road, Active City",
-                    average_rating: 4.1,
-                    rating_count: 9,
-                    total_rating_value: 36.9
-                }
+                ['Tech Galaxy', 'Latest gadgets and electronics', '123 Tech Street, Silicon Valley'],
+                ['Book Haven', 'Wide collection of books', '456 Library Road, Knowledge City'],
+                ['Coffee Shop', 'Fresh coffee and snacks', '789 Brew Street, Morning Town']
             ];
-
-            let storesInserted = 0;
+            
             for (const store of sampleStores) {
                 await new Promise((resolve, reject) => {
-                    db.run(`
-                        INSERT INTO Stores (name, description, address, average_rating, rating_count, total_rating_value) 
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    `, [store.name, store.description, store.address, store.average_rating, store.rating_count, store.total_rating_value], (err) => {
-                        if (err) reject(err);
-                        else {
-                            storesInserted++;
-                            resolve();
+                    db.run(
+                        'INSERT INTO Stores (name, description, address) VALUES (?, ?, ?)',
+                        store,
+                        (err) => {
+                            if (err) reject(err);
+                            else {
+                                console.log(`✅ Added store: ${store[0]}`);
+                                resolve();
+                            }
                         }
-                    });
+                    );
                 });
             }
-            console.log(`✓ ${storesInserted} sample stores created`);
         } else {
-            console.log(`✓ ${storeCount} stores already exist in database`);
+            console.log(`✅ ${storeCount} stores already exist`);
         }
 
         console.log('\n🎉 Database initialized successfully!');
@@ -223,7 +166,6 @@ const initDatabase = async () => {
         console.log('👑 Admin: admin@test.com / Admin123!');
         console.log('🏪 Owner: owner@test.com / Owner123!'); 
         console.log('👤 User: user@test.com / User123!');
-        console.log('\nRun: npm run dev to start the server');
 
     } catch (error) {
         console.error('❌ Database initialization failed:', error);
