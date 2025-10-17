@@ -6,7 +6,7 @@ import NormalUserDashboard from './components/NormalUser';
 import StoreOwnerDashboard from './components/StoreOwner'; 
 
 // API Base URL
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = "https://rateit-backend.onrender.com/api";
 
 const App = () => {
     const [user, setUser] = useState(null);
