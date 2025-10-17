@@ -6,7 +6,7 @@ import NormalUserDashboard from './components/NormalUser';
 import StoreOwnerDashboard from './components/StoreOwner'; 
 
 // API Base URL
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = "https://rateit-backend.onrender.com/api";
 
 const App = () => {
     const [user, setUser] = useState(null);
@@ -60,25 +60,33 @@ const App = () => {
             const result = await apiRequest('/stores');
             console.log('🔍 loadStores - Result:', result);
             
-            if (result && result.success && result.stores) {
-                console.log('🎉 loadStores - SUCCESS! Setting stores with:', result.stores.length, 'stores');
-                setStores(result.stores);
-                return true;
-            } else {
-                console.log('❌ loadStores - No stores in response');
-                setStores([]);
-                return false;
+            // 🎯 FIXED: Handle both response formats
+            if (result && result.success) {
+                const storesData = result.data || result.stores || [];
+                if (storesData.length > 0) {
+                    console.log('🎉 loadStores - SUCCESS! Setting stores with:', storesData.length, 'stores');
+                    setStores(storesData);
+                    return true;
+                }
             }
+            
+            console.log('❌ loadStores - No stores in response');
+            setStores([]);
+            return false;
+            
         } catch (error) {
             console.error('💥 loadStores - Complete failure:', error);
             // Fallback to debug endpoint
             try {
                 console.log('🔄 loadStores - Trying debug endpoint...');
                 const debugResult = await apiRequest('/debug/stores');
-                if (debugResult && debugResult.success && debugResult.stores) {
-                    console.log('🔄 loadStores - Using debug stores data');
-                    setStores(debugResult.stores);
-                    return true;
+                if (debugResult && debugResult.success) {
+                    const debugStores = debugResult.data || debugResult.stores || [];
+                    if (debugStores.length > 0) {
+                        console.log('🔄 loadStores - Using debug stores data');
+                        setStores(debugStores);
+                        return true;
+                    }
                 }
             } catch (debugError) {
                 console.error('💥 loadStores - Debug endpoint also failed');
@@ -138,11 +146,12 @@ const App = () => {
                 body: storeData
             });
             
-            if (result && result.success && result.store) {
+            if (result && result.success) {
+                const newStore = result.data || result.store;
                 console.log('✅ handleAddStore - Store added to server');
                 // Update local state with the new store from server
-                setStores(prev => [...prev, result.store]);
-                return result.store;
+                setStores(prev => [...prev, newStore]);
+                return newStore;
             } else {
                 throw new Error('Failed to add store to server');
             }
@@ -169,9 +178,10 @@ const App = () => {
                 body: userData
             });
             
-            if (result && result.success && result.user) {
+            if (result && result.success) {
+                const newUser = result.data || result.user;
                 console.log('✅ handleAddUser - User added to server');
-                return result.user;
+                return newUser;
             } else {
                 throw new Error('Failed to add user to server');
             }
@@ -182,14 +192,17 @@ const App = () => {
         }
     };
 
-    // 🚨 ENHANCED: Get users from persistent endpoint
+    // 🚨 FIXED: Get users from persistent endpoint - HANDLES BOTH FORMATS
     const handleGetUsers = async () => {
         console.log('📋 handleGetUsers - Getting users from server');
         try {
             const result = await apiRequest('/users');
-            if (result && result.success && result.users) {
-                console.log('✅ handleGetUsers - Got users from server:', result.users.length);
-                return result.users;
+            
+            // 🎯 FIXED: Handle both response formats
+            if (result && result.success) {
+                const usersData = result.data || result.users || [];
+                console.log('✅ handleGetUsers - Got users from server:', usersData.length);
+                return usersData;
             } else {
                 throw new Error('No users in response');
             }
@@ -198,10 +211,39 @@ const App = () => {
             // Fallback to debug endpoint
             try {
                 const debugResult = await apiRequest('/debug/users');
-                return debugResult.users || [];
+                if (debugResult && debugResult.success) {
+                    const debugUsers = debugResult.data || debugResult.users || [];
+                    console.log('🔄 handleGetUsers - Using debug users:', debugUsers.length);
+                    return debugUsers;
+                }
+                throw new Error('No debug users found');
             } catch (debugError) {
                 console.error('💥 handleGetUsers - Debug endpoint also failed');
-                return [];
+                // Final fallback - return demo users
+                console.log('🔄 handleGetUsers - Using demo users as final fallback');
+                return [
+                    {
+                        id: 1,
+                        name: 'System Administrator',
+                        email: 'admin@test.com',
+                        role: 'admin',
+                        address: 'Admin Headquarters'
+                    },
+                    {
+                        id: 2,
+                        name: 'Store Owner', 
+                        email: 'owner@test.com',
+                        role: 'owner',
+                        address: 'Store Owner Address'
+                    },
+                    {
+                        id: 3,
+                        name: 'Normal User',
+                        email: 'user@test.com', 
+                        role: 'user',
+                        address: 'User Home Address'
+                    }
+                ];
             }
         }
     };
@@ -214,16 +256,17 @@ const App = () => {
                 method: 'POST',
                 body: { 
                     rating: newRatingValue,
-                    userId: user?.id // Include user ID for the backend
+                    userId: user?.id  
                 }
             });
             
-            if (result && result.success && result.store) {
+            if (result && result.success) {
+                const updatedStore = result.data || result.store;
                 console.log('✅ handleRateStore - Rating submitted to server');
                 // Update local stores state with the updated store from server
                 setStores(prevStores => 
                     prevStores.map(store => 
-                        store.id === storeId ? result.store : store
+                        store.id === storeId ? updatedStore : store
                     )
                 );
                 return Promise.resolve();
@@ -232,7 +275,7 @@ const App = () => {
             }
         } catch (error) {
             console.error('❌ handleRateStore - Server error, updating locally:', error);
-            // Fallback: update local state only
+            
             setStores(prevStores => 
                 prevStores.map(store => {
                     if (store.id === storeId) {

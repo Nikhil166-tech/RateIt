@@ -1,4 +1,37 @@
-node_modules/
+# Database files
+database/*.db
+database/*.sqlite
+database/*.db-journal
+
+# Environment variables
 .env
 .env.local
-backend/database/ 
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
